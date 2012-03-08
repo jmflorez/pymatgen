@@ -21,6 +21,8 @@ import scipy.constants as sc
 from scipy.misc import comb
 from pymatgen.core.structure import Structure
 from copy import deepcopy, copy
+from random import random
+from datetime import datetime
 import bisect
 
 
@@ -328,7 +330,7 @@ class EwaldMinimizer:
     
     Author: Will Richards'''
     
-    def __init__(self, matrix, m_list, num_to_return = 1, fast = True):
+    def __init__(self, matrix, m_list, num_to_return = 1, fast = True, speedup_parameter = 0):
         '''arguments:
         matrix      a matrix of the ewald sum interaction energies. This is stored in the class as a diagonally symmetric array
                     and so self._matrix will not be the same as the input matrix
@@ -339,6 +341,10 @@ class EwaldMinimizer:
         num_to_return the minimizer will find the number_returned lowest energy structures. This is likely to return a number of
                     duplicate structures so it may be necessary to overestimate and then remove the duplicates later. (duplicate checking
                     in this process is extremely expensive)
+        speedup_parameter:
+                    this parameter determines how many possible combinations are skipped. Its unclear what the exact relationship is, but a 
+                    higher parameter will return a less accurate result (in much less time). Typical values are 0-100, but for extremely complex
+                    ordering higher may be necessary. 0 looks at all possible orderings.
         '''
         self._matrix = copy(matrix)
         for i in range(len(self._matrix)): #make the matrix diagonally symmetric (so matrix[i,:] == matrix[:,j])
@@ -358,6 +364,18 @@ class EwaldMinimizer:
             
         if n_combinations <= num_to_return:
             fast = False                    #If we're returning all sums, don't bother with short circuit algorithm
+        
+        final_indices = m_list[0][2]
+        final_interactions = list(matrix[final_indices,:][:,final_indices].flatten())
+        print final_interactions
+        average_interaction = sum(map(abs,final_interactions))/len(final_interactions)
+        
+        
+        self._randomness = speedup_parameter*average_interaction
+        
+        print self._randomness
+        print datetime.utcnow()
+        self._combinations_computed = 0
         
         self.minimize_matrix(fast)
         
@@ -410,7 +428,7 @@ class EwaldMinimizer:
         else:    
             sums.sort()
         if 2*fraction-fraction**2 <= 1:
-            interactions.sort(reverse = True)
+            interactions.sort(reverse = True, key = lambda x: x+random()*self._randomness)
         else:
             interactions.sort()
         
@@ -451,6 +469,7 @@ class EwaldMinimizer:
             m_list.pop()
             if not m_list:
                 matrix_sum = sum(sum(matrix))
+                self._combinations_computed += 1
                 if matrix_sum < self._current_minimum:
                     self.add_m_list(matrix_sum, output_m_list)
                 return 
@@ -509,6 +528,7 @@ class EwaldMinimizer:
     
     @property
     def output_lists(self):
+        print str(self._combinations_computed) + ' combinations' 
         return self._output_lists
         
     

@@ -325,7 +325,7 @@ class OrderDisorderedStructureTransformation(AbstractTransformation):
     def __init__(self):
         self._all_structures = []
     
-    def apply_transformation(self, structure, num_structures = 1):
+    def apply_transformation(self, structure, num_structures = 1, speedup_parameter = 0):
         """
         For this transformation, the apply_transformation method will return only the ordered
         structure with the lowest Ewald energy, to be consistent with the method signature of the other transformations.  
@@ -404,7 +404,7 @@ class OrderDisorderedStructureTransformation(AbstractTransformation):
         
         matrix = EwaldSummation(structure).total_energy_matrix
         
-        ewald_m = EwaldMinimizer(matrix, m_list, num_structures)
+        ewald_m = EwaldMinimizer(matrix, m_list,num_to_return = num_structures, speedup_parameter = speedup_parameter)
         
         self._all_structures = []
         
