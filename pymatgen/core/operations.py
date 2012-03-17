@@ -42,15 +42,20 @@ class SymmOp (object):
         self._tol = tol
     
     @staticmethod
-    def from_rotation_matrix_and_translation_vector(rotation_matrix, translation_vec, tol = 0.1):
+    def from_rotation_matrix_and_translation_vector(rotation_matrix = ((1,0,0), (0,1,0), (0,0,1)), translation_vec = (0,0,0), tol = 0.1):
         """
-        Creates a symmetry operation from a rotatino matrix and a translation vector.
+        Creates a symmetry operation from a rotation matrix and a translation vector.
         
         Args:
-            rotation_matrix: A 3x3 numpy.array specifying a rotation matrix
-            translation_vec: A rank 1 numpy.array specifying a translation vector
-            tol: tolerance to determine if rotation matrix is valid
+            rotation_matrix: 
+                A 3x3 numpy.array specifying a rotation matrix
+            translation_vec: 
+                A rank 1 numpy.array specifying a translation vector
+            tol: 
+                tolerance to determine if rotation matrix is valid
         """
+        rotation_matrix = np.array(rotation_matrix)
+        translation_vec = np.array(translation_vec)
         if rotation_matrix.shape != (3,3):
             raise ValueError("Rotation Matrix must be a 3x3 numpy array.")
         if translation_vec.shape != (3,):
@@ -150,7 +155,7 @@ class SymmOp (object):
         return SymmOp(invr)
 
     @staticmethod
-    def from_axis_angle_and_translation(axis, angle, angle_in_radians = False, translation_vec = np.zeros(3)):
+    def from_axis_angle_and_translation(axis, angle, angle_in_radians = False, translation_vec = (0, 0, 0)):
         """
         Generates a SymmOp for a rotation about a given axis plus a translation.
         
@@ -163,6 +168,8 @@ class SymmOp (object):
         """
         if isinstance(axis, (tuple, list)):
             axis = np.array(axis)
+        if isinstance(translation_vec, (tuple, list)):
+            translation_vec = np.array(translation_vec)
         a = angle if angle_in_radians else angle * pi / 180
         cosa = cos(a)
         sina = sin(a) 

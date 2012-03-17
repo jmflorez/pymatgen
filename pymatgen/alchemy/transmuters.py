@@ -40,12 +40,16 @@ class CifTransmuter(object):
         """
         self._transformations = transformations
         
-    def transmute(self, cif_filenames):
+    def transmute(self, cif_filenames, primitive = True):
         """
+        Transmute a list of cifs defined by cif_filenames.
+        
         Args:
             cif_filenames:
                 Sequence of cif filenames. Each cif may or may not contain multiple 
                 structures.
+            primitive:
+                Whether to convert all cells to primitive. Defaults to true.
         """
         transformed_structures = []
         for filename in cif_filenames:
@@ -58,7 +62,7 @@ class CifTransmuter(object):
                         read_data = True
                     if read_data:
                         structure_data[-1].append(line)
-                transformed_structures.extend([CifTransformedStructure("".join(data), self._transformations) for data in structure_data])
+                transformed_structures.extend([CifTransformedStructure("".join(data), self._transformations, primitive) for data in structure_data])
         return transformed_structures
 
 class PoscarTransmuter(object):
@@ -76,6 +80,8 @@ class PoscarTransmuter(object):
         
     def transmute(self, poscar_filenames):
         """
+        Transmute a list of poscars defined by poscars_filenames.
+        
         Args:
             poscar_filenames:
                 Sequence of poscar filenames.
