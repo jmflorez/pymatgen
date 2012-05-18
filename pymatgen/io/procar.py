@@ -185,26 +185,8 @@ class Dos(object):
             return min(energies)
 
 
-
-    def _compute_by(self, lamb, spin):
-        """docstring for _compute_by"""
-        pass
-
-    def compute_by_site_index(self, i, moment='total', spin='total'):
-        "compute_by_* methods return a DosGrid object"
-        if spin == 'up':
-            pass
-        elif spin == 'down':
-            pass
-        elif spin == 'total':
-            pass
-        else:
-            # raise
-            return None
-
     def compute_by_site_range(self, start_index, final_index, moment='total', spin='total'):
-        dos_grid = []
-        pass
+        raise NotImplemented()
 
     def compute_dos_by_elements(self, elements, spin='up', zero_to_efermi=True):
         """
@@ -408,6 +390,151 @@ class ProcarParser(object):
         dos = Dos(up, down)
         return dos
 
+class DosPlotter(object):
+
+    def __init__(self, dos):
+        self.dos = dos
+
+    def plot_total(self, file_name, title=None):
+        # Plot element's by total DOS on each site
+        # returns a Plot object?
+        # grab the DosGrid object from the plot?
+        elements = self.dos.elements
+
+        plot_element_up = self.dos.compute_dos_by_elements(elements, spin='up')
+
+        if not self.dos.down is None:
+            plot_element_down = self.dos.compute_dos_by_elements(elements, spin='down')
+
+        #pp(plot_element_total)
+
+        #print len(plot_element_total[0])
+
+        moment_map = {moment: i for i, moment in enumerate(OrbitalSite.MOMENTS)}
+
+        plot_moments = 's p d total'.split()
+        color_map = dict(zip(plot_moments, 'g r b c'.split()))
+
+        for moment in plot_moments:
+            i = moment_map[moment]
+            x = [e[0] for e in plot_element_up]
+            y = [e[i + 1] for e in plot_element_up]
+            label = moment
+            #pylab.plot(x, y, label=label, color=color_map[moment])
+
+        sigma = 0.06
+
+        #UP
+        for moment in plot_moments:
+            i = moment_map[moment]
+            x = [e[0] for e in plot_element_up]
+            y = [e[i + 1] for e in plot_element_up]
+            smeared_y = gaussian_filter1d(y, sigma / 0.05)
+            label = moment
+            pylab.plot(x, smeared_y, label=label, color=color_map[moment])
+
+        # DOWN
+        if not self.dos.down is None:
+            for moment in plot_moments:
+                i = moment_map[moment]
+                x = [e[0] for e in plot_element_down]
+                y = [e[i + 1] * -1 for e in plot_element_down]
+                smeared_y = gaussian_filter1d(y, sigma / 0.05)
+                label = moment
+                pylab.plot(x, smeared_y, label=None, color=color_map[moment])
+
+        label_size = 20
+        pylab.rc('text', usetex=True)
+
+        if not title is None:
+            pylab.title(r'$\mathrm{' + '\ task\_id\ '.join(title.split('_')) + '}$')
+
+        pylab.ylabel(r'$\mathrm{DOS\ (States/eV/Spin)}$', fontsize=label_size)
+        pylab.xlabel(r'$\mathrm{E-E_f\ (eV)}$', fontsize=label_size)
+        pylab.xlim([-10, 10])
+        pylab.axvline(0.0, color='k')
+
+        pylab.legend(loc='upper left')
+        print "Saving plot {f}".format(f=file_name)
+        pylab.savefig(file_name)
+        pylab.clf()
+
+    def plot_by_elements(self, file_name, moments=None, title=None):
+        """
+
+        Args:
+            file_name (str) of filename to write to
+            moments (dict) of {element:moments} {"O":['p', 'total'], "Mn":['t2g', 'eg'] } 
+            title (str) title of plot
+
+        If moments is None, the total dos is plotted
+
+        """
+        # Plot element's by total DOS on each site
+        # returns a Plot object?
+        # grab the DosGrid object from the plot?
+        elements = self.dos.elements
+
+        # A Map of moments to ints in the dos array
+        moment_map = {moment: i for i, moment in enumerate(OrbitalSite.MOMENTS)}
+
+        # Plot The total for each element
+
+        plot_moments = ['total']
+
+        #color_map = {'total': 'g'}
+        # Colors can be specified as html colors
+        # http://www.webstandards.org/learn/reference/charts/color_names/
+
+        colors = 'blue red fuchsia green aqua purple lime maroon navy teal'.split()
+
+        color_map = dict(zip(elements, colors))
+        
+        for element in elements:
+        
+            plot_element_up = self.dos.compute_dos_by_elements(element, spin='up')
+
+            if not self.dos.down is None:
+                plot_element_down = self.dos.compute_dos_by_elements(element, spin='down')
+
+            sigma = 0.06
+
+            #UP
+            for moment in plot_moments:
+                i = moment_map[moment]
+                x = [e[0] for e in plot_element_up]
+                y = [e[i + 1] for e in plot_element_up]
+                smeared_y = gaussian_filter1d(y, sigma / 0.05)
+                label = moment
+                pylab.plot(x, smeared_y, label=element, color=color_map[element])
+
+            # DOWN
+            if not self.dos.down is None:
+                for moment in plot_moments:
+                    i = moment_map[moment]
+                    x = [e[0] for e in plot_element_down]
+                    y = [e[i + 1] * -1 for e in plot_element_down]
+                    smeared_y = gaussian_filter1d(y, sigma / 0.05)
+                    label = moment
+                    pylab.plot(x, smeared_y, label=None, color=color_map[element])
+
+        # Pretty up plot
+        label_size = 20
+        pylab.rc('text', usetex=True)
+
+        if not title is None:
+            pylab.title(r'$\mathrm{' + '\ task\_id\ '.join(title.split('_')) + '}$')
+
+        pylab.ylabel(r'$\mathrm{DOS\ (States/eV/Spin)}$', fontsize=label_size)
+        pylab.xlabel(r'$\mathrm{E-E_f\ (eV)}$', fontsize=label_size)
+        pylab.xlim([-10, 10])
+        pylab.axvline(0.0, color='k')
+
+        pylab.legend(loc='upper left')
+        print "Saving plot {f}".format(f=file_name)
+        pylab.savefig(file_name)
+        pylab.clf()
+
 
 def test_procar_parser():
     """Basic smoke test for ProcarParser. Still very slow"""
@@ -417,77 +544,19 @@ def test_procar_parser():
     print dos
 
 
-def plot_total_dos(dos, file_name, title=None):
-    # Plot element's by total DOS on each site
-    # returns a Plot object?
-    # grab the DosGrid object from the plot?
-    elements = dos.elements
-
-    plot_element_up = dos.compute_dos_by_elements(elements, spin='up')
-
-    if not dos.down is None:
-        plot_element_down = dos.compute_dos_by_elements(elements, spin='down')
-
-    #pp(plot_element_total)
-
-    #print len(plot_element_total[0])
-
-    moment_map = {moment: i for i, moment in enumerate(OrbitalSite.MOMENTS)}
-
-    plot_moments = 's p d total'.split()
-    color_map = dict(zip(plot_moments, 'g r b c'.split()))
-
-    for moment in plot_moments:
-        i = moment_map[moment]
-        x = [e[0] for e in plot_element_up]
-        y = [e[i + 1] for e in plot_element_up]
-        label = moment
-        #pylab.plot(x, y, label=label, color=color_map[moment])
-
-    sigma = 0.06
-
-    #UP
-    for moment in plot_moments:
-        i = moment_map[moment]
-        x = [e[0] for e in plot_element_up]
-        y = [e[i + 1] for e in plot_element_up]
-        smeared_y = gaussian_filter1d(y, sigma / 0.05)
-        label = moment
-        pylab.plot(x, smeared_y, label=label, color=color_map[moment])
-
-    # DOWN
-    if not dos.down is None:
-        for moment in plot_moments:
-            i = moment_map[moment]
-            x = [e[0] for e in plot_element_down]
-            y = [e[i + 1] * -1 for e in plot_element_down]
-            smeared_y = gaussian_filter1d(y, sigma / 0.05)
-            label = moment
-            pylab.plot(x, smeared_y, label=None, color=color_map[moment])
-
-    label_size = 20
-    pylab.rc('text', usetex=True)
-
-    if not title is None:
-        pylab.title(r'$\mathrm{' + '\ task\_id\ '.join(title.split('_')) + '}$')
-
-    pylab.ylabel(r'$\mathrm{DOS\ (States/eV/Spin)}$', fontsize=label_size)
-    pylab.xlabel(r'$\mathrm{E-E_f\ (eV)}$', fontsize=label_size)
-    pylab.xlim([-10, 10])
-    pylab.axvline(0.0, color='k')
-
-    pylab.legend(loc='upper left')
-    print "Saving plot {f}".format(f=file_name)
-    pylab.savefig(file_name)
-    pylab.clf()
-
-
-def run(procar_file_name, output_file=None):
-
+def run(procar_file_name, output_file=None, plot_element=False):
+    """
+    Core routine to compute the DOS
+    """
     title = None
     parser = ProcarParser(procar_file_name)
     dos = parser.parse()
-    plot_dos(dos, output_file, title)
+    dos_plotter = DosPlotter(dos)
+
+    if plot_element:
+        dos_plotter.plot_by_elements(output_file)
+    else:
+        dos_plotter.plot_total(output_file)
 
 
 def main():
@@ -495,7 +564,7 @@ def main():
 
     parser = OptionParser()
 
-    #parser.add_option('-e', '--element', dest='element_name', help='Element Symbol (e.g., Fe)')
+    parser.add_option('-e', '--element', dest='plot_element', action='store_true', help='Element Symbol (e.g., Fe)')
     #parser.add_option('-t', '--total', dest='total', help='Plot total')
     parser.add_option('-o', '--output', dest='output_file', default=None, help='Output file to write plot to.')
 
@@ -508,7 +577,7 @@ def main():
         return -1
     else:
         procar_file_name = args[0]
-        run(procar_file_name, opts.output_file)
+        run(procar_file_name, opts.output_file, opts.plot_element)
         return 0
 
 if __name__ == '__main__':
