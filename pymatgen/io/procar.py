@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import time
 import logging
 import glob
 from optparse import OptionParser
@@ -454,7 +455,7 @@ class DosPlotter(object):
         pylab.xlim([-10, 10])
         pylab.axvline(0.0, color='k')
 
-        pylab.legend(loc='upper left')
+        pylab.legend(loc='upper right')
         print "Saving plot {f}".format(f=file_name)
         pylab.savefig(file_name)
         pylab.clf()
@@ -473,7 +474,7 @@ class DosPlotter(object):
         # Plot element's by total DOS on each site
         # returns a Plot object?
         # grab the DosGrid object from the plot?
-        elements = self.dos.elements
+        elements = list(set(self.dos.elements))
 
         # A Map of moments to ints in the dos array
         moment_map = {moment: i for i, moment in enumerate(OrbitalSite.MOMENTS)}
@@ -505,8 +506,7 @@ class DosPlotter(object):
                 x = [e[0] for e in plot_element_up]
                 y = [e[i + 1] for e in plot_element_up]
                 smeared_y = gaussian_filter1d(y, sigma / 0.05)
-                label = moment
-                pylab.plot(x, smeared_y, label=element, color=color_map[element])
+                pylab.plot(x, smeared_y, label=element, color=color_map.get(element, 'blue'))
 
             # DOWN
             if not self.dos.down is None:
@@ -515,8 +515,7 @@ class DosPlotter(object):
                     x = [e[0] for e in plot_element_down]
                     y = [e[i + 1] * -1 for e in plot_element_down]
                     smeared_y = gaussian_filter1d(y, sigma / 0.05)
-                    label = moment
-                    pylab.plot(x, smeared_y, label=None, color=color_map[element])
+                    pylab.plot(x, smeared_y, label=None, color=color_map.get(element, 'blue'))
 
         # Pretty up plot
         label_size = 20
@@ -530,7 +529,7 @@ class DosPlotter(object):
         pylab.xlim([-10, 10])
         pylab.axvline(0.0, color='k')
 
-        pylab.legend(loc='upper left')
+        pylab.legend(loc='upper right')
         print "Saving plot {f}".format(f=file_name)
         pylab.savefig(file_name)
         pylab.clf()
@@ -549,8 +548,11 @@ def run(procar_file_name, output_file=None, plot_element=False):
     Core routine to compute the DOS
     """
     title = None
+    t0 = time.time()
     parser = ProcarParser(procar_file_name)
     dos = parser.parse()
+    run_time = time.time() - t0
+    print "Parsing took {s} sec ({m} min)".format(s=int(run_time), m=int(run_time / 60.0))
     dos_plotter = DosPlotter(dos)
 
     if plot_element:
